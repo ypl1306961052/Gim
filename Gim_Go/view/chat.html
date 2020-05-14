@@ -1,0 +1,123 @@
+{{define "login"}}
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <title>聊天室</title>
+        <script>
+            function send() {
+                var messageText = document.getElementById("message");
+                var content = messageText.value;
+                var date = new Date()
+                var message = {
+                    id: 1,
+                    sendId: userId,
+                    receiveId: receiveId,
+                    cmd: 1,
+                    media: 1,
+                    content: content,
+                    time: date.getTime()
+                };
+                console.log(message);
+                var messageJson = JSON.stringify(message);
+                console.log(message);
+                if (!window.WebSocket) {
+                    return;
+
+                }
+
+                //显示自己聊天数据
+                var elementById = document.getElementById("responseText");
+                if (elementById.value === "" || elementById.value === undefined) {
+                    elementById.value = userId + ":" + content;
+                } else {
+                    elementById.value = elementById.value + "\n" + userId + ":" + content;
+                }
+
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(messageJson);
+                } else {
+                    alert("聊天是还没有链接成功,请等待.....")
+                }
+
+            }
+
+            function initLister() {
+                console.log("init")
+                var elementById = document.getElementById("sendID");
+                elementById.onkeydown = function (e) {
+                    var keyCode = e.keyCode || e.which || w.charCode;
+                    if (keyCode === 13) {
+                        send()
+                        return false;
+                    } else {
+                        return true;
+                    }
+
+                }
+            }
+
+            function showText(message, elementById) {
+                var content = message.sendId + ":" + message.content
+                if (elementById.value === "" || elementById.value === undefined) {
+                    elementById.value = elementById.value + content;
+                } else {
+                    elementById.value = elementById.value + "\n" + content;
+                }
+            }
+        </script>
+        <!--ypl ON 2020/4/25-->
+        <style></style>
+    </head>
+    <body>
+    <form>
+        <br>
+        <div><p>聊天ID:{{.SendId}}</p>
+            <p>聊天对象ID:{{.ReceiveId}}</p></div>
+        <input id="message" type="text">
+        <input id="sendID" type="button" value="发送" onclick="send()">
+        <input id="online" type="text">
+    </form>
+    <textarea id="responseText" style="width: 500px;height: 500px"></textarea>
+    <script type="text/javascript">
+        var userId ={{.SendId}};
+        var receiveId ={{.ReceiveId}};
+        var token ={{.Token}}
+        var socket;
+        if (!window.WebSocket) {
+            window.WebSocket = window.MozWebSocket;
+        }
+        if (window.WebSocket) {
+            socket = new WebSocket("ws://192.168.0.111:8080/user/chat?id=" + userId + "&token=" + token);
+            socket.onmessage = function (event) {
+                var elementById = document.getElementById("responseText");
+                console.log("获取数据为：" + event.data);
+                var message = JSON.parse(event.data);
+                if (message.media === 1) {
+                    showText(message, elementById)
+                } else {
+                    console.log("暂时不支持")
+                }
+
+            }
+            socket.onopen = function (event) {
+                var elementById = document.getElementById("online");
+                elementById.value = "web聊天室已经打开"
+            }
+            socket.onclose = function (event) {
+                var elementById = document.getElementById("online");
+
+                elementById.value = elementById.value + "\nweb聊天室关闭！！！！！"
+
+            }
+        } else {
+            alert("抱歉你的浏览器不支持websocket协议")
+        }
+
+        initLister();
+
+
+    </script>
+    </body>
+    </html>
+{{end}}
